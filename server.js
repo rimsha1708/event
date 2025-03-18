@@ -9,31 +9,22 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-app.get('/', (req, res) => {
-    res.send('Welcome to the Event Planning !');
-});
-
-
-// User Schema
+// User Schema & Model
 const UserSchema = new mongoose.Schema({
     username: String,
     password: String
 });
 const User = mongoose.model('User', UserSchema);
 
-// Event Schema
+// Event Schema & Model
 const EventSchema = new mongoose.Schema({
     userId: mongoose.Schema.Types.ObjectId,
     name: String,
     description: String,
     date: Date,
-    time: String,
-    category: String,
-    reminder: Boolean,
-    email: String
+    category: String
 });
 const Event = mongoose.model('Event', EventSchema);
-
 
 // User Registration
 app.post('/register', async (req, res) => {
@@ -70,20 +61,10 @@ const authenticate = (req, res, next) => {
 
 // Create Event
 app.post('/events', authenticate, async (req, res) => {
-    const { name, description, date, time, category, reminder, email } = req.body;
-    const event = new Event({ userId: req.userId, name, description, date, time, category, reminder, email });
+    const { name, description, date, category } = req.body;
+    const event = new Event({ userId: req.userId, name, description, date, category });
     await event.save();
     res.json({ message: 'Event created successfully' });
-
-    // Send Reminder Email
-    if (reminder) {
-        transporter.sendMail({
-            from: process.env.EMAIL_USER,
-            to: email,
-            subject: `Reminder for Event: ${name}`,
-            text: `Your event "${name}" is scheduled for ${date} at ${time}.`
-        });
-    }
 });
 
 // View Events
@@ -92,6 +73,10 @@ app.get('/events', authenticate, async (req, res) => {
     res.json(events);
 });
 
-// Start Server
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// Start the server only if not in test mode
+if (process.env.NODE_ENV !== 'test') {
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+}
+
+module.exports = app;  // Export app for testing
